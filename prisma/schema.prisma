@@ -1,0 +1,73 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "workerd"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model antrean {
+  id_antrean      Int        @id @default(autoincrement())
+  id_pelanggan    Int
+  nomor_antrean   Int
+  status          String     @default("Menunggu") @db.VarChar(20)
+  waktu_masuk     DateTime   @default(now()) @db.Timestamp(6)
+  tanggal_antrean DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  pelanggan       pelanggan  @relation(fields: [id_pelanggan], references: [id_pelanggan], onDelete: NoAction, onUpdate: NoAction, map: "fk_antrean_pelanggan")
+  transaksi       transaksi?
+
+  @@unique([tanggal_antrean, nomor_antrean], map: "unique_nomor_antrean_per_tanggal")
+}
+
+model pelanggan {
+  id_pelanggan Int       @id @default(autoincrement())
+  nama         String    @db.VarChar(100)
+  antrean      antrean[]
+}
+
+model transaksi {
+  id_transaksi    Int      @id @default(autoincrement())
+  id_antrean      Int      @unique
+  total           Int
+  uang_dibayar    Int      @default(0)
+  kembalian       Int      @default(0)
+  metode          String   @default("Cash") @db.VarChar(20)
+  waktu_transaksi DateTime @default(now()) @db.Timestamp(6)
+  antrean         antrean  @relation(fields: [id_antrean], references: [id_antrean], onDelete: NoAction, onUpdate: NoAction, map: "fk_transaksi_antrean")
+}
+
+model users {
+  id_user  Int    @id @default(autoincrement())
+  nama     String @db.VarChar(100)
+  username String @unique @db.VarChar(50)
+  password String @db.VarChar(255)
+  role     String @db.VarChar(20)
+}
+
+model pelamar {
+  id_pelamar       Int                 @id @default(autoincrement())
+  nama             String              @db.VarChar(100)
+  no_telepon       String              @db.VarChar(20)
+  pengalaman_kerja String?             @db.Text
+  lama_pengalaman  Int?
+  status           String              @default("Menunggu Seleksi") @db.VarChar(30)
+  created_at       DateTime            @default(now()) @db.Timestamp(6)
+  penilaian        penilaian_seleksi[]
+}
+
+model penilaian_seleksi {
+  id_penilaian         Int      @id @default(autoincrement())
+  id_pelamar           Int
+  nilai_praktik        Int
+  nilai_ketelitian     Int
+  nilai_tanggung_jawab Int
+  catatan              String?  @db.Text
+  keputusan            String   @default("Belum Diputuskan") @db.VarChar(30)
+  created_at           DateTime @default(now()) @db.Timestamp(6)
+  pelamar              pelamar  @relation(fields: [id_pelamar], references: [id_pelamar], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([id_pelamar])
+}
